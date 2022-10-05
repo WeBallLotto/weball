@@ -3,9 +3,8 @@ use solana_program::pubkey::Pubkey;
 use crate::common::{errors::ErrorCode, *};
 use std::str::FromStr;
 
-pub const NONE_PUBKEY: &str = "11111111111111111111111111111111";
 // pool manager
-pub const MANAGER: &str = "LottVA5ufyAfgRqgZXsnL9UYiLpNDb5Y8UUSCFxtqxf";
+pub const MANAGER: &str = "BZ91mR995LnqBTiHXq7de5YzgjvchhckGMPe72RHF34g";
 // how many balls in one bet
 pub const BALL_NUM_PER_BET: usize = 5;
 // max length of dealer name
