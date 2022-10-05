@@ -1,0 +1,29 @@
+[package]
+name = "lottery"
+version = "0.1.0"
+description = "blockchain lottery experience"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "lottery"
+doctest = false
+
+[features]
+no-entrypoint = []
+no-idl = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+solana-program = "=1.10.38"
+spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
+anchor-lang = { version="0.25.0", features = ["init-if-needed"] }
+anchor-spl = "0.25.0"
+bitflags = "1.3.2"
+static_assertions = "1.1.0"
+thiserror = "1.0.32"
+arrayref = "0.3.6"
+switchboard-v2 = { version = "^0.1.14", features = ["devnet"] }
+
+proc_macros = {path='../../lib/proc_macros'}
