@@ -1,6 +1,5 @@
 use crate::*;
 pub use switchboard_v2::VrfAccountData;
-pub use switchboard_v2::SWITCHBOARD_PROGRAM_ID;
 use crate::common::{errors::ErrorCode};
 use crate::state::*;
 

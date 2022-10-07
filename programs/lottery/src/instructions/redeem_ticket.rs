@@ -104,7 +104,10 @@ pub fn handler(
     }
     // you can't redeem ticket before drawn
     // also you can't redeem a ticket more than once
-    if ctx.accounts.draw.drawn_ts == 0 ||  ctx.accounts.draw.bonus_amount == 0 || ctx.accounts.ticket.redeemed_bonus > 0 {
+    if ctx.accounts.draw.drawn_ts == 0
+        || ctx.accounts.draw.bonus_amount == 0
+        || ctx.accounts.ticket.redeemed_bonus > 0
+        || ctx.accounts.ticket.created_at > ctx.accounts.draw.close_ts {
         return Err(error!(ErrorCode::IllegalState));
     }
 
