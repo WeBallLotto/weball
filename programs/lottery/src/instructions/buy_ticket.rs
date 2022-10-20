@@ -124,7 +124,8 @@ pub fn handler(
         return Err(error!(ErrorCode::BettingClosed));
     }
     // invalid params
-    if !(1..=12).contains(&num_of_bets) || !(1..=10).contains(&multiplier) {
+    if !(1..=12).contains(&num_of_bets) || !(1..=10).contains(&multiplier)
+        || multiplier < ctx.accounts.pool.min_betting_multiplier {
         return Err(error!(ErrorCode::InvalidParameter));
     }
 
@@ -141,7 +142,8 @@ pub fn handler(
     }
 
     // calculate ticket price
-    let ticket_price = ctx.accounts.pool.ticket_price.try_mul(num_of_bets.into())?.try_mul(multiplier.into())?;
+    let single_ticket_price = ctx.accounts.pool.ticket_price;
+    let ticket_price = single_ticket_price.try_mul(num_of_bets.into())?.try_mul(multiplier.into())?;
 
     // update prize pool
     let count_bets = num_of_bets.try_mul(multiplier)?;
@@ -174,7 +176,13 @@ pub fn handler(
     draw.partner_share_amount.try_add_assign(partner_share_amount)?;
 
     // update dealer
+    let dealer_num_of_bets = ctx.accounts.dealer.num_of_bets;
     let dealer = &mut ctx.accounts.dealer;
+    // fix amount of tickets
+    if dealer_num_of_bets > 0 && dealer.amount_of_bets == 0 {
+        dealer.amount_of_bets.try_add_assign(dealer_num_of_bets.try_mul(single_ticket_price)?)?;
+    }
+    dealer.amount_of_bets.try_add_assign(ticket_price)?;
     dealer.num_of_bets.try_add_assign(count_bets.into())?;
     dealer.accrued_share_amount.try_add_assign(dealer_share_amount)?;
 

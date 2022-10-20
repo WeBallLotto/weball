@@ -396,5 +396,3 @@ terraform.rc
 .anchor
 
 *.original
-
-/src

@@ -80,9 +80,11 @@ pub struct PrizePool {
     // maximum betting duration(seconds)
     pub max_betting_ts: u64,
 
-    pub reserved1: [u8; 8],
-    pub reserved2: [u8; 32],
-    pub reserved3: [u8; 64],
+    // minimum betting multiplier
+    pub min_betting_multiplier: u8,
+
+    pub reserved1: [u8; 32],
+    pub reserved2: [u8; 64],
 }
 
 impl PrizePool {

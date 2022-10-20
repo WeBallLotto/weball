@@ -20,6 +20,7 @@ pub fn handler(
     new_drawer: Pubkey,
     min_betting_ts: u64,
     max_betting_ts: u64,
+    min_betting_multiplier: u8,
 ) -> Result<()> {
     let pool = &mut ctx.accounts.pool;
     // check permission
@@ -30,6 +31,7 @@ pub fn handler(
     pool.drawer = new_drawer;
     pool.min_betting_ts = min_betting_ts;
     pool.max_betting_ts = max_betting_ts;
+    pool.min_betting_multiplier = min_betting_multiplier;
 
     Ok(())
 }

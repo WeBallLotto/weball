@@ -37,8 +37,9 @@ pub mod lottery {
         new_drawer: Pubkey,
         min_betting_ts: u64,
         max_betting_ts: u64,
+        min_betting_multiplier: u8,
     ) -> Result<()> {
-        instructions::update_prize_pool::handler(ctx, new_manager, new_drawer, min_betting_ts, max_betting_ts)
+        instructions::update_prize_pool::handler(ctx, new_manager, new_drawer, min_betting_ts, max_betting_ts, min_betting_multiplier)
     }
 
     pub fn deposit_prize_pool(

@@ -1,0 +1,43 @@
+{
+  "name": "@weball/weball-ts",
+  "version": "0.1.0",
+  "description": "Blockchain lottery experience",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "weball",
+    "solana",
+    "lottery"
+  ],
+  "author": "WeBall",
+  "license": "MIT",
+  "scripts": {
+    "pubwin": "del /q /s dist && tsc",
+    "pub": "rm -rf ./dist && tsc"
+  },
+  "dependencies": {
+    "@project-serum/anchor": "0.25.0",
+    "@solana/spl-token": "^0.3.5",
+    "@solana/wallet-adapter-base": "^0.9.16",
+    "@solana/web3.js": "^1.61.1",
+    "@types/bs58": "^4.0.1",
+    "bs58": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.22",
+    "@types/chai-as-promised": "^7.1.4",
+    "@types/mocha": "^9.0.0",
+    "chai": "^4.3.4",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^9.0.3",
+    "prettier": "^2.5.0",
+    "ts-mocha": "^8.0.0",
+    "typescript": "^4.3.5"
+  }
+}
