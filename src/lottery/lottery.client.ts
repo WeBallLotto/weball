@@ -1,11 +1,19 @@
 import * as anchor from '@project-serum/anchor';
 import {BN, Idl, Program, AnchorProvider} from '@project-serum/anchor';
-import {Connection, Keypair, PublicKey, SystemProgram, Transaction, SYSVAR_RECENT_BLOCKHASHES_PUBKEY} from '@solana/web3.js';
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
+  ComputeBudgetProgram
+} from '@solana/web3.js';
 import {Lottery} from '../types/lottery';
 import {AccountUtils, BetTicket, stringifyPKsAndBNs, sleep, isKp} from '../common';
 import {ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, NATIVE_MINT} from '@solana/spl-token';
 import {findBonusPotPDA, findDealerPDA, findPartnerPDA, findPoolAuthorityPDA, findPrizeDrawPDA, findPrizePotPDA, findPrizeTicketPDA, findSharePotPDA} from './lottery.pda';
-const {createAssociatedTokenAccountInstruction, createCloseAccountInstruction, createSyncNativeInstruction} = require("@solana/spl-token");
+const {createAssociatedTokenAccountInstruction, createCloseAccountInstruction, createSyncNativeInstruction, createBurnCheckedInstruction} = require("@solana/spl-token");
 
 export class LotteryClient extends AccountUtils {
   // @ts-ignore
@@ -306,10 +314,11 @@ export class LotteryClient extends AccountUtils {
       newestDraw: PublicKey,
       period: BN,
       closeTs: BN,
+      bonusMultiplier: number,
   ) {
     const ixs = [];
     const [nextDraw, drawBump] = await findPrizeDrawPDA(pool, period);
-    ixs.push(await this.program.instruction.initPrizeDraw(period, closeTs,
+    ixs.push(await this.program.instruction.initPrizeDraw(period, closeTs, bonusMultiplier,
         {
           accounts: {
             pool,
@@ -383,6 +392,7 @@ export class LotteryClient extends AccountUtils {
       dealer: PublicKey,
       tickets: BetTicket[],
       wallet: any,
+      burnTokens: PublicKey[] = [],
   ) {
     if(tickets.length <= 0) return {};
 
@@ -396,13 +406,30 @@ export class LotteryClient extends AccountUtils {
     const payAccount = await this.findATA(prizeMint, payerPK);
     const draw = poolAccount.newestDraw;
 
-    let ixs = [];
+    const ixs = [];
+    let remainingAccounts = [];
+    let index = burnTokens.length;
+    for (const mint of burnTokens) {
+      index -= 1;
+      const ata = await this.findATA(mint, payerPK);
+      remainingAccounts.push({ pubkey: mint, isWritable: true, isSigner: false });
+      remainingAccounts.push({ pubkey: ata, isWritable: true, isSigner: false });
+      if (remainingAccounts.length === 28 || index == 0) {
+        ixs.push([await this.program.instruction.burn(
+            remainingAccounts.length / 2,
+            { accounts: {owner, tokenProgram: TOKEN_PROGRAM_ID}, remainingAccounts }
+        )]);
+        remainingAccounts = [];
+      }
+    }
+
     let buyIxs = [];
     let totalPrice = 0;
     for (const bt of tickets) {
+      const multiplier = bt.multiplier > poolAccount.minBettingMultiplier ? bt.multiplier : poolAccount.minBettingMultiplier;
       const [ticket, ticketBump] = await findPrizeTicketPDA(pool, draw, owner, bt.ticketNo);
-      totalPrice += poolAccount.ticketPrice.toNumber() * bt.numOfBets * bt.multiplier;
-      buyIxs.push(await this.program.instruction.buyTicket(bt.ticketNo, bt.balls, bt.numOfBets, bt.multiplier,
+      totalPrice += poolAccount.ticketPrice.toNumber() * bt.numOfBets * multiplier;
+      buyIxs.push(await this.program.instruction.buyTicket(bt.ticketNo, bt.balls, bt.numOfBets, multiplier,
           {
             accounts: {
               pool,
@@ -424,13 +451,12 @@ export class LotteryClient extends AccountUtils {
           }
       ));
     }
+
+
+    ixs.push([]);
     // convert wrapped sol
-    if (isWsol) {
-        ixs.push(await this.buildWrappedSolIxs(payerPK, totalPrice));
-        ixs[0].push(...buyIxs);
-    } else {
-        ixs.push(buyIxs);
-    }
+    if (isWsol) ixs[ixs.length - 1].push(...(await this.buildWrappedSolIxs(payerPK, totalPrice)));
+    ixs[ixs.length - 1].push(...buyIxs);
 
     // why waitCompleted set to 1? if instructions is too large, we need convert wSOL first,
     // otherwise the transactions will fail due to insufficient balance

@@ -67,8 +67,9 @@ pub mod lottery {
         ctx: Context<InitPrizeDraw>,
         period: u64,
         close_ts: u64,
+        bonus_multiplier: u8,
     ) -> Result<()> {
-        instructions::init_prize_draw::handler(ctx, period, close_ts)
+        instructions::init_prize_draw::handler(ctx, period, close_ts, bonus_multiplier)
     }
 
     pub fn draw_prize(
@@ -151,6 +152,10 @@ pub mod lottery {
         ctx: Context<WithdrawTeam>,
     ) -> Result<()> {
         instructions::withdraw_team::handler(ctx)
+    }
+
+    pub fn burn<'a, 'b, 'c, 'info>(ctx: Context<'a, 'b, 'c, 'info, Burn<'info>>, count: u8) -> Result<()> {
+        instructions::burn::handler(ctx, count)
     }
 
     // request VRF on chain

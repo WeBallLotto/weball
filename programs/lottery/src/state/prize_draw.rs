@@ -3,7 +3,7 @@ use solana_program::pubkey::Pubkey;
 use crate::state::*;
 use crate::common::{errors::ErrorCode, *};
 
-#[proc_macros::assert_size(128)]
+#[proc_macros::assert_size(136)]
 #[repr(C)]
 #[account]
 #[derive(Debug)]
@@ -34,6 +34,8 @@ pub struct PrizeDraw {
     pub dealer_share_amount: u64,
     // partner share amount of this period
     pub partner_share_amount: u64,
+    // bonus multiplier
+    pub bonus_multiplier: u8,
 }
 
 impl PrizeDraw {

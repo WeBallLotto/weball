@@ -32,6 +32,7 @@ pub fn handler(
     ctx: Context<InitPrizeDraw>,
     period: u64,
     close_ts: u64,
+    bonus_multiplier: u8,
 ) -> Result<()> {
     let now_ts = now_ts()?;
 
@@ -51,6 +52,7 @@ pub fn handler(
 
     // init next prize draw
     let draw = &mut ctx.accounts.next_draw;
+    draw.bonus_multiplier = bonus_multiplier;
     draw.pool = ctx.accounts.pool.key();
     draw.period = period;
     draw.close_ts = close_ts;

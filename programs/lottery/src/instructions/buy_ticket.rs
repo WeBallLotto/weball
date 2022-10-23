@@ -176,12 +176,7 @@ pub fn handler(
     draw.partner_share_amount.try_add_assign(partner_share_amount)?;
 
     // update dealer
-    let dealer_num_of_bets = ctx.accounts.dealer.num_of_bets;
     let dealer = &mut ctx.accounts.dealer;
-    // fix amount of tickets
-    if dealer_num_of_bets > 0 && dealer.amount_of_bets == 0 {
-        dealer.amount_of_bets.try_add_assign(dealer_num_of_bets.try_mul(single_ticket_price)?)?;
-    }
     dealer.amount_of_bets.try_add_assign(ticket_price)?;
     dealer.num_of_bets.try_add_assign(count_bets.into())?;
     dealer.accrued_share_amount.try_add_assign(dealer_share_amount)?;

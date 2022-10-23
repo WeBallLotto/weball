@@ -82,15 +82,16 @@ pub fn test_prize(draw_balls:&[u8], test_balls:&[u8]) -> Result<(u8, u8)> {
 }
 
 // calculate winning amount
-pub fn calc_bonus(front: u8, tail: u8, top: u64) -> u64 {
+pub fn calc_bonus(front: u8, tail: u8, top: u64, multiplier: u64) -> u64 {
+    let mul = if multiplier > 0 { multiplier } else { 1 };
     match (front, tail) {
-        (0, 1) => 20_000_000, // Level8
-        (1, 1) => 20_000_000, // level7
-        (2, 0) => 20_000_000, // level6
-        (2, 1) => 100_000_000, // level5
-        (3, 0) => 250_000_000, // level4
-        (3, 1) => 2_500_000_000, // level3
-        (4, 0) => 30_000_000_000, // Level2
+        (0, 1) => 20_000_000 * mul, // Level8
+        (1, 1) => 20_000_000 * mul, // level7
+        (2, 0) => 20_000_000 * mul, // level6
+        (2, 1) => 100_000_000 * mul, // level5
+        (3, 0) => 250_000_000 * mul, // level4
+        (3, 1) => 2_500_000_000 * mul, // level3
+        (4, 0) => 30_000_000_000 * mul, // Level2
         (4, 1) => top, // top prize
         _ => 0
     }
@@ -123,7 +124,7 @@ pub fn handler(
     let balls = ctx.accounts.ticket.balls;
     for i in 0..num_of_bets {
         let (front, tail) = test_prize(&ctx.accounts.draw.balls, array_ref![balls, i * BALL_NUM_PER_BET, BALL_NUM_PER_BET])?;
-        bonus = bonus.try_add(calc_bonus(front, tail, ctx.accounts.draw.top_amount))?;
+        bonus = bonus.try_add(calc_bonus(front, tail, ctx.accounts.draw.top_amount, ctx.accounts.draw.bonus_multiplier.into()))?;
     }
     bonus = bonus.try_mul(ctx.accounts.ticket.multiplier.into())?;
 
@@ -165,45 +166,46 @@ mod tests {
         for i in 0..num_of_bets {
             let (front, tail) = test_prize(&draw_balls, array_ref![balls, i * BALL_NUM_PER_BET, BALL_NUM_PER_BET]).unwrap();
             println!("front: {}, tail: {}", front, tail);
-            bonus = bonus + calc_bonus(front, tail, 10);
+            bonus = bonus + calc_bonus(front, tail, 10, 2);
         }
         bonus
     }
 
     #[test]
     fn test_bonus() {
+        let mul = 2;
         let draw_balls1: [u8; 5] = [2, 7, 9, 33, 6];
         assert_eq!(get_bonus(&draw_balls1, 1), 10);
         assert_eq!(get_bonus(&draw_balls1, 2), 20);
 
         let draw_balls2: [u8; 5] = [2, 7, 9, 33, 1];
-        assert_eq!(get_bonus(&draw_balls2, 1), 30_000_000_000);
-        assert_eq!(get_bonus(&draw_balls2, 2), 30_000_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls2, 1), 30_000_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls2, 2), 30_000_000_000 * 2 * mul);
 
         let draw_balls3: [u8; 5] = [2, 7, 17, 33, 6];
-        assert_eq!(get_bonus(&draw_balls3, 1), 2_500_000_000);
-        assert_eq!(get_bonus(&draw_balls3, 2), 2_500_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls3, 1), 2_500_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls3, 2), 2_500_000_000 * 2 * mul);
 
         let draw_balls4: [u8; 5] = [2, 7, 17, 33, 1];
-        assert_eq!(get_bonus(&draw_balls4, 1), 250_000_000);
-        assert_eq!(get_bonus(&draw_balls4, 2), 250_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls4, 1), 250_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls4, 2), 250_000_000 * 2 * mul);
 
         let draw_balls5: [u8; 5] = [2, 5, 17, 33, 6];
-        assert_eq!(get_bonus(&draw_balls5, 1), 100_000_000);
-        assert_eq!(get_bonus(&draw_balls5, 2), 100_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls5, 1), 100_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls5, 2), 100_000_000 * 2 * mul);
 
         let draw_balls6: [u8; 5] = [2, 5, 17, 33, 1];
-        assert_eq!(get_bonus(&draw_balls6, 1), 20_000_000);
-        assert_eq!(get_bonus(&draw_balls6, 2), 20_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls6, 1), 20_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls6, 2), 20_000_000 * 2 * mul);
 
         let draw_balls7: [u8; 5] = [1, 5, 17, 33, 6];
-        assert_eq!(get_bonus(&draw_balls7, 1), 20_000_000);
-        assert_eq!(get_bonus(&draw_balls7, 2), 20_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls7, 1), 20_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls7, 2), 20_000_000 * 2 * mul);
 
         let draw_balls8: [u8; 5] = [1, 5, 17, 38, 6];
-        assert_eq!(get_bonus(&draw_balls8, 1), 20_000_000);
-        assert_eq!(get_bonus(&draw_balls8, 2), 20_000_000 * 2);
-        assert_eq!(get_bonus(&draw_balls8, 2), 20_000_000 * 2);
+        assert_eq!(get_bonus(&draw_balls8, 1), 20_000_000 * mul);
+        assert_eq!(get_bonus(&draw_balls8, 2), 20_000_000 * 2 * mul);
+        assert_eq!(get_bonus(&draw_balls8, 2), 20_000_000 * 2 * mul);
 
         let draw_balls8: [u8; 5] = [1, 5, 17, 38, 9];
         assert_eq!(get_bonus(&draw_balls8, 1), 0);

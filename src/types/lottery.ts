@@ -354,6 +354,10 @@ export type Lottery = {
         {
           "name": "closeTs",
           "type": "u64"
+        },
+        {
+          "name": "bonusMultiplier",
+          "type": "u8"
         }
       ]
     },
@@ -1013,6 +1017,27 @@ export type Lottery = {
       "args": []
     },
     {
+      "name": "burn",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "count",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "initState",
       "accounts": [
         {
@@ -1244,6 +1269,10 @@ export type Lottery = {
           {
             "name": "partnerShareAmount",
             "type": "u64"
+          },
+          {
+            "name": "bonusMultiplier",
+            "type": "u8"
           }
         ]
       }
@@ -1925,6 +1954,10 @@ export const IDL: Lottery = {
         {
           "name": "closeTs",
           "type": "u64"
+        },
+        {
+          "name": "bonusMultiplier",
+          "type": "u8"
         }
       ]
     },
@@ -2584,6 +2617,27 @@ export const IDL: Lottery = {
       "args": []
     },
     {
+      "name": "burn",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "count",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "initState",
       "accounts": [
         {
@@ -2815,6 +2869,10 @@ export const IDL: Lottery = {
           {
             "name": "partnerShareAmount",
             "type": "u64"
+          },
+          {
+            "name": "bonusMultiplier",
+            "type": "u8"
           }
         ]
       }

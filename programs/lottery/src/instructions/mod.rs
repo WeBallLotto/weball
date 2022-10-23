@@ -45,3 +45,6 @@ pub use withdraw_team::*;
 
 pub mod recycle_bonus;
 pub use recycle_bonus::*;
+
+pub mod burn;
+pub use burn::*;
