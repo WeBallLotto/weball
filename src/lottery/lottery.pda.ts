@@ -6,6 +6,10 @@ export const findPrizeTicketPDA = async (pool: PublicKey, draw: PublicKey, owner
   return PublicKey.findProgramAddress([Buffer.from('prize_ticket'), pool.toBytes(), draw.toBytes(), owner.toBytes(), ticketNo.toArray('le', 8)], LOTTERY_PROG_ID);
 };
 
+export const findBetPlanPDA = async (pool: PublicKey, owner: PublicKey, ticketNo: BN) => {
+  return PublicKey.findProgramAddress([Buffer.from('bet_plan'), pool.toBytes(), owner.toBytes(), ticketNo.toArray('le', 8)], LOTTERY_PROG_ID);
+};
+
 export const findPrizeDrawPDA = async (pool: PublicKey, period: BN) => {
   return PublicKey.findProgramAddress([Buffer.from("prize_draw"), pool.toBytes(), period.toArray('le', 8)], LOTTERY_PROG_ID);
 };
@@ -32,4 +36,8 @@ export const findSharePotPDA = async (pool: PublicKey) => {
 
 export const findPrizePotPDA = async (pool: PublicKey) => {
   return PublicKey.findProgramAddress([Buffer.from("prize_pot"), pool.toBytes()], LOTTERY_PROG_ID);
+};
+
+export const findPlanPotPDA = async (pool: PublicKey) => {
+  return PublicKey.findProgramAddress([Buffer.from("plan_pot"), pool.toBytes()], LOTTERY_PROG_ID);
 };

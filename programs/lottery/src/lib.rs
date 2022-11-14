@@ -118,14 +118,33 @@ pub mod lottery {
         instructions::update_dealer::handler(ctx, dealer_name, wallet, share_rate, partner_rate)
     }
 
-    pub fn buy_ticket(
-        ctx: Context<BuyTicket>,
+    pub fn buy_ticket<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, BuyTicket<'info>>,
         ticket_no: u64,
         balls: [u8; 64],
         num_of_bets: u8,
         multiplier: u8,
     ) -> Result<()> {
         instructions::buy_ticket::handler(ctx, ticket_no, balls, num_of_bets, multiplier)
+    }
+
+    pub fn init_bet_plan(
+        ctx: Context<InitBetPlan>,
+        ticket_no: u64,
+        balls: [u8; 64],
+        num_of_bets: u8,
+        multiplier: u8,
+        num_of_draw: u8,
+        random: u8,
+    ) -> Result<()> {
+        instructions::init_bet_plan::handler(ctx, ticket_no, balls, num_of_bets, multiplier, num_of_draw, random)
+    }
+
+    pub fn close_bet_plan(
+        ctx: Context<CloseBetPlan>,
+        _bump_plan_pot: u8,
+    ) -> Result<()> {
+        instructions::close_bet_plan::handler(ctx)
     }
 
     pub fn redeem_ticket(

@@ -764,6 +764,178 @@ export type Lottery = {
       ]
     },
     {
+      "name": "initBetPlan",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "dealer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "draw",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "plan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "planPot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "prizeMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "ticketNo",
+          "type": "u64"
+        },
+        {
+          "name": "balls",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "numOfBets",
+          "type": "u8"
+        },
+        {
+          "name": "multiplier",
+          "type": "u8"
+        },
+        {
+          "name": "numOfDraw",
+          "type": "u8"
+        },
+        {
+          "name": "random",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "closeBetPlan",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "identity",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "plan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "planPot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "prizeMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "bumpPlanPot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "redeemTicket",
       "accounts": [
         {
@@ -1096,6 +1268,59 @@ export type Lottery = {
     }
   ],
   "accounts": [
+    {
+      "name": "betPlan",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "ticketNo",
+            "type": "u64"
+          },
+          {
+            "name": "dealer",
+            "type": "u64"
+          },
+          {
+            "name": "draw",
+            "type": "u64"
+          },
+          {
+            "name": "balls",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "multiplier",
+            "type": "u8"
+          },
+          {
+            "name": "numOfBets",
+            "type": "u8"
+          },
+          {
+            "name": "random",
+            "type": "u8"
+          },
+          {
+            "name": "numOfDraw",
+            "type": "u8"
+          },
+          {
+            "name": "totalOfDraw",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "dealer",
       "type": {
@@ -2364,6 +2589,178 @@ export const IDL: Lottery = {
       ]
     },
     {
+      "name": "initBetPlan",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "dealer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "draw",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "plan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "planPot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "prizeMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "ticketNo",
+          "type": "u64"
+        },
+        {
+          "name": "balls",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "numOfBets",
+          "type": "u8"
+        },
+        {
+          "name": "multiplier",
+          "type": "u8"
+        },
+        {
+          "name": "numOfDraw",
+          "type": "u8"
+        },
+        {
+          "name": "random",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "closeBetPlan",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "identity",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "plan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "planPot",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "prizeMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "bumpPlanPot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "redeemTicket",
       "accounts": [
         {
@@ -2696,6 +3093,59 @@ export const IDL: Lottery = {
     }
   ],
   "accounts": [
+    {
+      "name": "betPlan",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "ticketNo",
+            "type": "u64"
+          },
+          {
+            "name": "dealer",
+            "type": "u64"
+          },
+          {
+            "name": "draw",
+            "type": "u64"
+          },
+          {
+            "name": "balls",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "multiplier",
+            "type": "u8"
+          },
+          {
+            "name": "numOfBets",
+            "type": "u8"
+          },
+          {
+            "name": "random",
+            "type": "u8"
+          },
+          {
+            "name": "numOfDraw",
+            "type": "u8"
+          },
+          {
+            "name": "totalOfDraw",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "dealer",
       "type": {

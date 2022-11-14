@@ -48,3 +48,9 @@ pub use recycle_bonus::*;
 
 pub mod burn;
 pub use burn::*;
+
+pub mod init_bet_plan;
+pub use init_bet_plan::*;
+
+pub mod close_bet_plan;
+pub use close_bet_plan::*;

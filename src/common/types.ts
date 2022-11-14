@@ -10,6 +10,7 @@ export interface BetTicket {
   numOfBets: number,
   multiplier: number,
   ticketNo: BN,
+  plan?: PublicKey,
 }
 
 export function toBN(i: any): any {

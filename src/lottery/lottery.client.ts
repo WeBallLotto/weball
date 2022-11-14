@@ -12,7 +12,7 @@ import {
 import {Lottery} from '../types/lottery';
 import {AccountUtils, BetTicket, stringifyPKsAndBNs, sleep, isKp} from '../common';
 import {ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, NATIVE_MINT} from '@solana/spl-token';
-import {findBonusPotPDA, findDealerPDA, findPartnerPDA, findPoolAuthorityPDA, findPrizeDrawPDA, findPrizePotPDA, findPrizeTicketPDA, findSharePotPDA} from './lottery.pda';
+import {findBonusPotPDA, findDealerPDA, findPartnerPDA, findPoolAuthorityPDA, findPrizeDrawPDA, findPrizePotPDA, findPrizeTicketPDA, findSharePotPDA, findBetPlanPDA, findPlanPotPDA} from './lottery.pda';
 const {createAssociatedTokenAccountInstruction, createCloseAccountInstruction, createSyncNativeInstruction, createBurnCheckedInstruction} = require("@solana/spl-token");
 
 export class LotteryClient extends AccountUtils {
@@ -109,6 +109,14 @@ export class LotteryClient extends AccountUtils {
     if (period) filter.push({ memcmp: { offset: 48,  bytes: period.toArray('le', 8) } });
     const pdas = await this.program.account.prizeTicket.all(filter);
     console.log(`found ${pdas.length} tickets`);
+    return pdas;
+  }
+
+  async fetchAllBetPlans(owner?: PublicKey) {
+    const filter = [];
+    if (owner) filter.push({ memcmp: { offset: 8,  bytes: owner.toBase58() } });
+    const pdas = await this.program.account.betPlan.all(filter);
+    console.log(`found ${pdas.length} bet plans`);
     return pdas;
   }
 
@@ -393,6 +401,8 @@ export class LotteryClient extends AccountUtils {
       tickets: BetTicket[],
       wallet: any,
       burnTokens: PublicKey[] = [],
+      numOfDraw: number = 0,
+      random: boolean = false,
   ) {
     if(tickets.length <= 0) return {};
 
@@ -401,8 +411,8 @@ export class LotteryClient extends AccountUtils {
     const payerPK = isKp(payer) ? (<Keypair>payer).publicKey : <PublicKey>payer;
     const poolAccount = await this.fetchPrizePool(pool);
     const dealerAccount = await this.fetchDealer(dealer);
+    const [planPot, planBump] = await findPlanPotPDA(pool);
     const prizeMint = poolAccount.prizeMint;
-    const isWsol = prizeMint.toBase58() === NATIVE_MINT.toBase58();
     const payAccount = await this.findATA(prizeMint, payerPK);
     const draw = poolAccount.newestDraw;
 
@@ -424,11 +434,18 @@ export class LotteryClient extends AccountUtils {
     }
 
     let buyIxs = [];
-    let totalPrice = 0;
+    let betPlanIxs = [];
     for (const bt of tickets) {
+      // bet plan
+      const betRemainingAccounts = [];
+      if (bt.plan != null) {
+        betRemainingAccounts.push({pubkey: planPot, isWritable: true, isSigner: false});
+        betRemainingAccounts.push({pubkey: bt.plan, isWritable: true, isSigner: false});
+        betRemainingAccounts.push({pubkey: poolAccount.poolAuthority, isWritable: true, isSigner: false});
+      }
+
       const multiplier = bt.multiplier > poolAccount.minBettingMultiplier ? bt.multiplier : poolAccount.minBettingMultiplier;
       const [ticket, ticketBump] = await findPrizeTicketPDA(pool, draw, owner, bt.ticketNo);
-      totalPrice += poolAccount.ticketPrice.toNumber() * bt.numOfBets * multiplier;
       buyIxs.push(await this.program.instruction.buyTicket(bt.ticketNo, bt.balls, bt.numOfBets, multiplier,
           {
             accounts: {
@@ -448,19 +465,133 @@ export class LotteryClient extends AccountUtils {
               systemProgram: SystemProgram.programId,
               rent: anchor.web3.SYSVAR_RENT_PUBKEY,
             },
+            remainingAccounts: betRemainingAccounts,
+          }
+      ));
+
+      if (numOfDraw <= 0) continue;
+
+      // purchase for future draw
+      const [plan, _] = await findBetPlanPDA(pool, owner, bt.ticketNo);
+      betPlanIxs.push(await this.program.instruction.initBetPlan(bt.ticketNo, bt.balls, bt.numOfBets, bt.multiplier, numOfDraw, random ? 1 : 0,
+          {
+            accounts: {
+              pool,
+              poolAuthority: poolAccount.poolAuthority,
+              payer: payerPK,
+              dealer,
+              draw,
+              plan,
+              planPot,
+              prizeMint,
+              payAccount,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            },
           }
       ));
     }
 
-
-    ixs.push([]);
-    // convert wrapped sol
-    if (isWsol) ixs[ixs.length - 1].push(...(await this.buildWrappedSolIxs(payerPK, totalPrice)));
-    ixs[ixs.length - 1].push(...buyIxs);
+    ixs.push(buyIxs);
+    if (betPlanIxs.length > 0) ixs.push(betPlanIxs);
 
     // why waitCompleted set to 1? if instructions is too large, we need convert wSOL first,
     // otherwise the transactions will fail due to insufficient balance
     return this.sendTransactions(ixs, signers, wallet, 0);
+  }
+
+  async initBetPlan(
+      pool: PublicKey,
+      payer: PublicKey|Keypair,
+      owner: PublicKey,
+      dealer: PublicKey,
+      tickets: BetTicket[],
+      numOfDraw: number,
+      random: boolean,
+      wallet: any,
+  ) {
+    if(tickets.length <= 0) return {};
+
+    const signers = [];
+    if (isKp(payer)) signers.push(<Keypair>payer);
+    const payerPK = isKp(payer) ? (<Keypair>payer).publicKey : <PublicKey>payer;
+    const poolAccount = await this.fetchPrizePool(pool);
+    const prizeMint = poolAccount.prizeMint;
+    const payAccount = await this.findATA(prizeMint, payerPK);
+    const draw = poolAccount.newestDraw;
+    const [planPot, planBump] = await findPlanPotPDA(pool);
+
+    const ixs = [];
+    let buyPlanIxs = [];
+    for (const bt of tickets) {
+      const [plan, planBump] = await findBetPlanPDA(pool, owner, bt.ticketNo);
+      buyPlanIxs.push(await this.program.instruction.initBetPlan(bt.ticketNo, bt.balls, bt.numOfBets, bt.multiplier, numOfDraw, random ? 1 : 0,
+          {
+            accounts: {
+              pool,
+              poolAuthority: poolAccount.poolAuthority,
+              payer: payerPK,
+              dealer,
+              draw,
+              plan,
+              planPot,
+              prizeMint,
+              payAccount,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            },
+          }
+      ));
+    }
+
+    ixs.push(buyPlanIxs);
+
+    // why waitCompleted set to 1? if instructions is too large, we need convert wSOL first,
+    // otherwise the transactions will fail due to insufficient balance
+    return this.sendTransactions(ixs, signers, wallet, 0);
+  }
+
+  async closeBetPlan(
+      pool: PublicKey,
+      identity: PublicKey|Keypair,
+      prizeMint: PublicKey,
+      plans: any[],
+      wallet: any,
+  ) {
+    const signers = [];
+    if (isKp(identity)) signers.push(<Keypair>identity);
+    const identityPK = isKp(identity) ? (<Keypair>identity).publicKey : <PublicKey>identity;
+    const [planPot, planBump] = await findPlanPotPDA(pool);
+    const [poolAuthority, _] = await findPoolAuthorityPDA(pool);
+    const payAccount = await this.findATA(prizeMint, identityPK);
+
+    const ixs = [];
+    for (const plan of plans) {
+      ixs.push(await this.program.instruction.closeBetPlan(planBump,
+          {
+            accounts: {
+              pool,
+              poolAuthority: poolAuthority,
+              identity: identityPK,
+              owner: plan.owner,
+              plan: plan.publicKey,
+              planPot,
+              prizeMint,
+              payAccount,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            },
+          }
+      ));
+    }
+
+    return this.sendTransaction(ixs, signers, wallet);
   }
 
   async buyTicketAdvance(

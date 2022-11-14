@@ -9,6 +9,11 @@ pub const MANAGER: &str = "BZ91mR995LnqBTiHXq7de5YzgjvchhckGMPe72RHF34g";
 pub const BALL_NUM_PER_BET: usize = 5;
 // max length of dealer name
 pub const MAX_DEALER_NAME_LEN: usize = 32;
+// ticket rent fee: 0.002SOL
+pub const TICKET_RENT_FEE: u64 = 2_000_000;
+// max bets in one ticket
+pub const MAX_BETS_SINGLE_TICKET: u8 = 12;
+pub const MAX_BET_MULTIPLIER: u8 = 10;
 
 #[proc_macros::assert_size(536)]
 #[repr(C)]

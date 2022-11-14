@@ -1,5 +1,3 @@
-import { equalArray } from './general';
-
 // eveluate ticket, return its bonus and wepot number
 export function evalTicket(acc: any, drawBalls: number[], bonusMultiplier: number) {
 	let wepot = 0;
@@ -51,4 +49,13 @@ export function prizeBonus(match: number[]) {
 	else if (equalArray(match, [4, 0])) { return 30_000_000_000 } // Level2
 	else if (equalArray(match, [4, 1])) { return -1 } // top prize
 	else { return 0 }
+}
+
+// compare two array
+export function equalArray(a: any[], b: any[]) {
+	if (a.length != b.length) return false;
+	for (let i = a.length - 1; i > -1; i--) {
+		if (a[i] !== b[i]) return false;
+	}
+	return true;
 }

@@ -15,3 +15,6 @@ pub mod partner;
 
 pub use sb_vrf::*;
 pub mod sb_vrf;
+
+pub use bet_plan::*;
+pub mod bet_plan;

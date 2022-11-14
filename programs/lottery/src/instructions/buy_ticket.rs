@@ -1,11 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{self, Mint, Token, TokenAccount, Transfer},
+    token::{self, Mint, Token, TokenAccount, Transfer, SyncNative, CloseAccount},
 };
 
 use crate::state::*;
 use crate::common::{errors::ErrorCode, *};
+use anchor_lang::system_program;
+use solana_program::pubkey::Pubkey;
 
 #[derive(Accounts)]
 #[instruction(ticket_no: u64)]
@@ -43,9 +45,10 @@ pub struct BuyTicket<'info> {
     pub prize_mint: Box<Account<'info, Mint>>,
 
     /// CHECK:
-    #[account(mut,
+    #[account(init_if_needed,
         associated_token::mint = prize_mint,
-        associated_token::authority = payer)]
+        associated_token::authority = payer,
+        payer = payer)]
     pub pay_account: Box<Account<'info, TokenAccount>>,
 
     // misc
@@ -57,6 +60,36 @@ pub struct BuyTicket<'info> {
 }
 
 impl<'info> BuyTicket<'info> {
+    fn transfer_sol_ctx(&self) -> CpiContext<'_, '_, '_, 'info, system_program::Transfer<'info>> {
+        CpiContext::new(
+            self.system_program.to_account_info(),
+            system_program::Transfer {
+                from: self.payer.to_account_info(),
+                to: self.pay_account.to_account_info(),
+            },
+        )
+    }
+
+    fn sync_native_ctx(&self) -> CpiContext<'_, '_, '_, 'info, SyncNative<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            SyncNative {
+                account: self.pay_account.to_account_info(),
+            },
+        )
+    }
+
+    fn close_sol_ctx(&self) -> CpiContext<'_, '_, '_, 'info, CloseAccount<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            CloseAccount {
+                account: self.pay_account.to_account_info(),
+                destination: self.payer.to_account_info(),
+                authority: self.payer.to_account_info(),
+            },
+        )
+    }
+
     fn transfer_prize_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         CpiContext::new(
             self.token_program.to_account_info(),
@@ -82,7 +115,6 @@ impl<'info> BuyTicket<'info> {
 
 pub fn verify_balls(
     balls: [u8; 64],
-    num_of_balls: usize,
     ball_max_white: u8,
     ball_max_red: u8,
 ) -> usize {
@@ -90,8 +122,8 @@ pub fn verify_balls(
     for i in 0..balls.len() {
         if balls[i] == 0 { break; }
 
-        let ball_idx = i % num_of_balls;
-        if ball_idx == num_of_balls - 1 {
+        let ball_idx = i % BALL_NUM_PER_BET;
+        if ball_idx == BALL_NUM_PER_BET - 1 {
             // verify red ball
             if (1..=ball_max_red).contains(&balls[i]) {
                 num_of_bets += 1;
@@ -110,8 +142,8 @@ pub fn verify_balls(
     num_of_bets
 }
 
-pub fn handler(
-    ctx: Context<BuyTicket>,
+pub fn handler<'a, 'b, 'c, 'info>(
+    ctx: Context<'a, 'b, 'c, 'info, BuyTicket<'info>>,
     ticket_no: u64,
     balls: [u8; 64],
     num_of_bets: u8,
@@ -124,13 +156,14 @@ pub fn handler(
         return Err(error!(ErrorCode::BettingClosed));
     }
     // invalid params
-    if !(1..=12).contains(&num_of_bets) || !(1..=10).contains(&multiplier)
+    if !(1..=MAX_BETS_SINGLE_TICKET).contains(&num_of_bets)
+        || !(1..=MAX_BET_MULTIPLIER).contains(&multiplier)
         || multiplier < ctx.accounts.pool.min_betting_multiplier {
         return Err(error!(ErrorCode::InvalidParameter));
     }
 
     // verify balls
-    let valid_num_of_bets = verify_balls(balls, BALL_NUM_PER_BET, ctx.accounts.pool.ball_max_white, ctx.accounts.pool.ball_max_red);
+    let valid_num_of_bets = verify_balls(balls, ctx.accounts.pool.ball_max_white, ctx.accounts.pool.ball_max_red);
     if usize::from(num_of_bets) != valid_num_of_bets {
         return Err(error!(ErrorCode::IncorrectBalls));
     }
@@ -145,6 +178,47 @@ pub fn handler(
     let single_ticket_price = ctx.accounts.pool.ticket_price;
     let ticket_price = single_ticket_price.try_mul(num_of_bets.into())?.try_mul(multiplier.into())?;
 
+    let remaining_accs = &mut ctx.remaining_accounts.iter();
+    if remaining_accs.len() > 0 {
+        // buy ticket for betting plan
+        let plan_pot_info = next_account_info(remaining_accs)?;
+        let bet_plan_info = next_account_info(remaining_accs)?;
+        let pool_authority_info = next_account_info(remaining_accs)?;
+        let plan = &mut Account::<BetPlan>::try_from(bet_plan_info)?;
+        let (plan_pot, _) = Pubkey::find_program_address(&[b"plan_pot".as_ref(), ctx.accounts.pool.key().as_ref()], ctx.program_id);
+        // wrong authority / dealer / pot /owner / balls
+        if plan.dealer != ctx.accounts.dealer.no || plan_pot_info.key() != plan_pot
+            || pool_authority_info.key() != ctx.accounts.pool.pool_authority
+            || plan.num_of_bets != num_of_bets || plan.multiplier != multiplier
+            || (plan.random == 0 && plan.balls != valid_balls)
+            || ctx.accounts.owner.key() != plan.owner {
+            return Err(error!(ErrorCode::InvalidParameter));
+        }
+        // do not make repeat purchases
+        if plan.draw == ctx.accounts.draw.period || plan.num_of_draw == 0 {
+            return Err(error!(ErrorCode::IllegalState));
+        }
+        plan.draw = ctx.accounts.draw.period;
+        plan.num_of_draw.try_sub_assign(1)?;
+        plan.exit(&crate::id())?;
+
+        // transfer ticket fee
+        let fee_amount = ticket_price.try_add(TICKET_RENT_FEE)?;
+        let transfer_fee_ctx = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: plan_pot_info.clone(),
+                to: ctx.accounts.pay_account.to_account_info(),
+                authority: pool_authority_info.clone(),
+            },
+        );
+        token::transfer(transfer_fee_ctx.with_signer(&[&ctx.accounts.pool.authority_seeds()]), fee_amount)?;
+    } else {
+        // convert wrapped sol
+        system_program::transfer(ctx.accounts.transfer_sol_ctx(), ticket_price)?;
+        token::sync_native(ctx.accounts.sync_native_ctx())?;
+    }
+
     // update prize pool
     let count_bets = num_of_bets.try_mul(multiplier)?;
     let dealer_share_rate = ctx.accounts.dealer.share_rate;
@@ -155,6 +229,7 @@ pub fn handler(
     // transfer betting token
     token::transfer(ctx.accounts.transfer_prize_ctx(), prize_amount)?;
     token::transfer(ctx.accounts.transfer_share_ctx(), total_share_amount)?;
+    token::close_account(ctx.accounts.close_sol_ctx())?;
 
     // write prize ticket on-chain
     let ticket = &mut ctx.accounts.ticket;
@@ -194,21 +269,20 @@ mod tests {
 
     #[test]
     fn test_balls() {
-        let num_of_balls = 5;
         let ball_max_white: u8 = 40;
         let ball_max_red: u8 = 7;
         let mut balls:[u8; 64]  = [0; 64];
 
         balls[..10].clone_from_slice(&[2, 7, 9, 33, 6, 2, 7, 9, 33, 6]);
-        assert_eq!(verify_balls(balls, num_of_balls, ball_max_white, ball_max_red), 2);
+        assert_eq!(verify_balls(balls, ball_max_white, ball_max_red), 2);
 
         balls[..10].clone_from_slice(&[2, 7, 9, 30, 6, 2, 7, 9, 33, 9]);
-        assert_eq!(verify_balls(balls, num_of_balls, ball_max_white, ball_max_red), 1);
+        assert_eq!(verify_balls(balls, ball_max_white, ball_max_red), 1);
 
         balls[..10].clone_from_slice(&[2, 7, 9, 42, 6, 2, 7, 9, 33, 6]);
-        assert_eq!(verify_balls(balls, num_of_balls, ball_max_white, ball_max_red), 0);
+        assert_eq!(verify_balls(balls, ball_max_white, ball_max_red), 0);
 
         balls[..10].clone_from_slice(&[2, 7, 33, 30, 6, 2, 7, 9, 33, 9]);
-        assert_eq!(verify_balls(balls, num_of_balls, ball_max_white, ball_max_red), 0);
+        assert_eq!(verify_balls(balls, ball_max_white, ball_max_red), 0);
     }
 }

@@ -1,6 +1,6 @@
 # Blockchain lottery experience
 
-#### Build ts sdk
+### Build ts sdk
 ```
 yarn install
 yarn pub
@@ -37,7 +37,7 @@ yarn pub
     const {txSigs} = await client.buyTicket(pool, owner, owner, dealerPK, bets, signWallet, []);
 ```
 
-### fetch tickets
+### Fetch tickets
 ```
     const period = 20221018;
     const owner = new PublicKey("owner pubkey");
@@ -55,7 +55,7 @@ yarn pub
     result = result.sort((a:any,b:any)=>{return b.account.createdAt.toNumber()-a.account.createdAt.toNumber()});
 ```
 
-### redeem tickets
+### Redeem tickets
 ```
     import {NATIVE_MINT} from '@solana/spl-token';
     import { findPrizeDrawPDA, evalTicket } from '@/dist';
