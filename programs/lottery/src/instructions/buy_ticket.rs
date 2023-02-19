@@ -157,8 +157,7 @@ pub fn handler<'a, 'b, 'c, 'info>(
     }
     // invalid params
     if !(1..=MAX_BETS_SINGLE_TICKET).contains(&num_of_bets)
-        || !(1..=MAX_BET_MULTIPLIER).contains(&multiplier)
-        || multiplier < ctx.accounts.pool.min_betting_multiplier {
+        || !(1..=MAX_BET_MULTIPLIER).contains(&multiplier) {
         return Err(error!(ErrorCode::InvalidParameter));
     }
 
