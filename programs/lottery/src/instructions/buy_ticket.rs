@@ -248,6 +248,7 @@ pub fn handler<'a, 'b, 'c, 'info>(
     draw.team_share_amount.try_add_assign(team_share_amount)?;
     draw.dealer_share_amount.try_add_assign(dealer_share_amount)?;
     draw.partner_share_amount.try_add_assign(partner_share_amount)?;
+    draw.version = VERSION;
 
     // update dealer
     let dealer = &mut ctx.accounts.dealer;

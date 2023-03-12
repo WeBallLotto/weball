@@ -36,12 +36,14 @@ pub struct PrizeDraw {
     pub partner_share_amount: u64,
     // bonus multiplier
     pub bonus_multiplier: u8,
+    // version
+    pub version: u8,
 }
 
 impl PrizeDraw {
     // check end time of redeemable ticket
     pub fn is_expired(&self, now_ts: u64) -> Result<bool> {
-        let exp_ts = self.drawn_ts.try_add(90 * 24 * 3600)?;
+        let exp_ts = self.drawn_ts.try_add(30 * 24 * 3600)?;
         Ok(now_ts > exp_ts)
     }
 

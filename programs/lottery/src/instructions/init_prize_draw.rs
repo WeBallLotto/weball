@@ -56,6 +56,7 @@ pub fn handler(
     draw.pool = ctx.accounts.pool.key();
     draw.period = period;
     draw.close_ts = close_ts;
+    draw.version = VERSION;
 
     Ok(())
 }

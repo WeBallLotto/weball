@@ -3,6 +3,7 @@ use solana_program::pubkey::Pubkey;
 use crate::common::{errors::ErrorCode, *};
 use std::str::FromStr;
 
+pub const VERSION: u8 = 0;
 // pool manager
 pub const MANAGER: &str = "BZ91mR995LnqBTiHXq7de5YzgjvchhckGMPe72RHF34g";
 // how many balls in one bet
